@@ -6,12 +6,25 @@ const Emprestimo = sequelize.define('Emprestimo', {
     dataEmprestimo: {
         type: DataTypes.DATEONLY,
         allowNull: false,
-        defaultValue: DataTypes.NOW
+        defaultValue: DataTypes.NOW,
+        validate: {
+            notNull: {
+                msg: 'A data do empréstimo é obrigatória.'
+            },
+            isDate: {
+                msg: 'Informe uma data de empréstimo válida.'
+            }
+        }
     },
+
     dataDevolucao: {
         type: DataTypes.DATEONLY,
         allowNull: true,
         validate: {
+            isDate: {
+                msg: 'Informe uma data de devolução válida.'
+            },
+
             isAfterOrEqualDataEmprestimo(valor) {
                 if (
                     valor &&

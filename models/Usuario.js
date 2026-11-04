@@ -7,11 +7,15 @@ const Usuario = sequelize.define('Usuario', {
         type: DataTypes.STRING(100),
         allowNull: false,
         validate: {
+            notNull: {
+                msg: 'O nome não pode ser nulo.'
+            },
             notEmpty: {
                 msg: 'O nome é obrigatório.'
             },
-            notNull: {
-                msg: 'O nome não pode ser nulo.'
+            is: {
+                args: /^[A-Za-zÀ-ÿ\s]+$/,
+                msg: 'O nome deve conter apenas letras e espaços.'
             },
             len: {
                 args: [2, 100],
@@ -19,14 +23,21 @@ const Usuario = sequelize.define('Usuario', {
             }
         },
         set(valor) {
-            this.setDataValue('nome', valor.trim());
+            this.setDataValue(
+                'nome',
+                typeof valor === 'string' ? valor.trim() : valor
+            );
         }
     },
+
     email: {
         type: DataTypes.STRING(150),
         allowNull: false,
         unique: true,
         validate: {
+            notNull: {
+                msg: 'O e-mail não pode ser nulo.'
+            },
             notEmpty: {
                 msg: 'O e-mail é obrigatório.'
             },
@@ -39,7 +50,10 @@ const Usuario = sequelize.define('Usuario', {
             }
         },
         set(valor) {
-            this.setDataValue('email', valor.trim().toLowerCase());
+            this.setDataValue(
+                'email',
+                typeof valor === 'string' ? valor.trim().toLowerCase() : valor
+            );
         }
     }
 });

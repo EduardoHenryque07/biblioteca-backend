@@ -1,0 +1,205 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Empréstimos - Biblioteca</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f4f6f9;
+        }
+
+        h1 { color: #26364a; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            margin-top: 20px;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #26364a;
+            color: white;
+        }
+
+        button, a {
+            padding: 9px 12px;
+            margin: 3px;
+        }
+
+        .editar {
+            background: #e5a000;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .excluir {
+            background: #c0392b;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .novo {
+            display: inline-block;
+            background: #247a48;
+            color: white;
+            text-decoration: none;
+        }
+
+        #mensagem { margin-top: 15px; }
+    </style>
+</head>
+
+<body>
+
+    <h1>Empréstimos cadastrados</h1>
+
+    <a class="novo" href="/emprestimo-cadastro.html">+ Novo empréstimo</a>
+    <a href="/">Voltar ao início</a>
+
+    <p id="mensagem"></p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Usuário</th>
+                <th>Livro</th>
+                <th>Data do empréstimo</th>
+                <th>Data da devolução</th>
+                <th>Situação</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+
+        <tbody id="listaEmprestimos"></tbody>
+    </table>
+
+    <script>
+        async function carregarEmprestimos() {
+            const corpo = document.getElementById('listaEmprestimos');
+            const mensagem = document.getElementById('mensagem');
+
+            try {
+                const resposta = await fetch('/emprestimos');
+                const emprestimos = await resposta.json();
+
+                corpo.replaceChildren();
+
+                if (!resposta.ok) {
+                    throw new Error(
+                        emprestimos.erro || 'Erro ao carregar empréstimos.'
+                    );
+                }
+
+                if (emprestimos.length === 0) {
+                    mensagem.textContent = 'Nenhum empréstimo cadastrado.';
+                    return;
+                }
+
+                mensagem.textContent = '';
+
+                emprestimos.forEach(emprestimo => {
+                    const linha = document.createElement('tr');
+
+                    const usuario = emprestimo.Usuario
+                        ? emprestimo.Usuario.nome
+                        : 'ID ' + emprestimo.usuarioId;
+
+                    const livro = emprestimo.Livro
+                        ? emprestimo.Livro.titulo
+                        : 'ID ' + emprestimo.livroId;
+
+                    const devolucao = emprestimo.dataDevolucao || 'Pendente';
+
+                    const situacao = emprestimo.dataDevolucao
+                        ? 'Devolvido'
+                        : 'Em andamento';
+
+                    const dados = [
+                        emprestimo.id,
+                        usuario,
+                        livro,
+                        emprestimo.dataEmprestimo,
+                        devolucao,
+                        situacao
+                    ];
+
+                    dados.forEach(valor => {
+                        const celula = document.createElement('td');
+                        celula.textContent = valor;
+                        linha.appendChild(celula);
+                    });
+
+                    const acoes = document.createElement('td');
+
+                    const botaoEditar = document.createElement('button');
+                    botaoEditar.textContent = 'Editar';
+                    botaoEditar.className = 'editar';
+                    botaoEditar.onclick = () => {
+                        window.location.href =
+                            '/emprestimo-cadastro.html?id=' + emprestimo.id;
+                    };
+
+                    const botaoExcluir = document.createElement('button');
+                    botaoExcluir.textContent = 'Excluir';
+                    botaoExcluir.className = 'excluir';
+                    botaoExcluir.onclick = () => {
+                        excluirEmprestimo(emprestimo.id);
+                    };
+
+                    acoes.append(botaoEditar, botaoExcluir);
+                    linha.appendChild(acoes);
+
+                    corpo.appendChild(linha);
+                });
+
+            } catch (erro) {
+                mensagem.textContent = erro.message;
+            }
+        }
+
+        async function excluirEmprestimo(id) {
+            if (!confirm('Deseja realmente excluir este empréstimo?')) {
+                return;
+            }
+
+            try {
+                const resposta = await fetch('/emprestimos/' + id, {
+                    method: 'DELETE'
+                });
+
+                const resultado = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(
+                        resultado.erro || 'Não foi possível excluir o empréstimo.'
+                    );
+                }
+
+                alert('Empréstimo excluído com sucesso!');
+                carregarEmprestimos();
+
+            } catch (erro) {
+                alert(erro.message);
+            }
+        }
+
+        carregarEmprestimos();
+    </script>
+
+</body>
+</html>

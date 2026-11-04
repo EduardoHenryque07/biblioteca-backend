@@ -1,45 +1,73 @@
 
 const express = require('express');
 const router = express.Router();
+const { Op } = require('sequelize');
 
 const Livro = require('../models/Livro');
+const { Emprestimo } = require('../models');
 
-// POST - Cadastrar livro
-router.post('/', async (req, res) => {
+// LISTAR LIVROS COM FILTROS E ORDENAÇÃO
+router.get('/', async (req, res) => {
     try {
-        const { titulo, autor, anoPublicacao, disponivel } = req.body;
+        const { titulo, autor, disponivel, ordenar } = req.query;
 
-        if (!titulo || !autor || !anoPublicacao) {
+        const where = {};
+
+        // Filtro por título
+        if (titulo) {
+            where.titulo = {
+                [Op.iLike]: `%${titulo}%`
+            };
+        }
+
+        // Filtro por autor
+        if (autor) {
+            where.autor = {
+                [Op.iLike]: `%${autor}%`
+            };
+        }
+
+        // Filtro por disponibilidade
+        if (disponivel !== undefined) {
+            if (!['true', 'false'].includes(disponivel)) {
+                return res.status(400).json({
+                    erro: 'O filtro disponivel deve ser true ou false.'
+                });
+            }
+
+            where.disponivel = disponivel === 'true';
+        }
+
+        // Ordenação
+        let order = [['id', 'ASC']];
+
+        if (ordenar === 'titulo') {
+            order = [['titulo', 'ASC']];
+        } else if (ordenar === 'titulo_desc') {
+            order = [['titulo', 'DESC']];
+        } else if (ordenar === 'ano') {
+            order = [['anoPublicacao', 'ASC']];
+        } else if (ordenar === 'ano_desc') {
+            order = [['anoPublicacao', 'DESC']];
+        } else if (
+            ordenar &&
+            !['titulo', 'titulo_desc', 'ano', 'ano_desc'].includes(ordenar)
+        ) {
             return res.status(400).json({
-                erro: 'Título, autor e ano de publicação são obrigatórios.'
+                erro: 'Ordenação inválida. Use titulo, titulo_desc, ano ou ano_desc.'
             });
         }
 
-        const livro = await Livro.create({
-            titulo,
-            autor,
-            anoPublicacao,
-            disponivel
+        const livros = await Livro.findAll({
+            where,
+            order
         });
-
-        return res.status(201).json(livro);
-
-    } catch (erro) {
-        return res.status(400).json({
-            erro: 'Erro ao cadastrar livro.',
-            detalhe: erro.message
-        });
-    }
-});
-
-// GET - Listar todos os livros
-router.get('/', async (req, res) => {
-    try {
-        const livros = await Livro.findAll();
 
         return res.json(livros);
 
     } catch (erro) {
+        console.error('Erro ao listar livros:', erro);
+
         return res.status(500).json({
             erro: 'Erro ao listar livros.',
             detalhe: erro.message
@@ -47,7 +75,7 @@ router.get('/', async (req, res) => {
     }
 });
 
-// GET - Buscar livro por ID
+// BUSCAR LIVRO POR ID
 router.get('/:id', async (req, res) => {
     try {
         const livro = await Livro.findByPk(req.params.id);
@@ -61,6 +89,8 @@ router.get('/:id', async (req, res) => {
         return res.json(livro);
 
     } catch (erro) {
+        console.error('Erro ao buscar livro:', erro);
+
         return res.status(500).json({
             erro: 'Erro ao buscar livro.',
             detalhe: erro.message
@@ -68,7 +98,34 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// PUT - Atualizar livro
+// CADASTRAR LIVRO
+router.post('/', async (req, res) => {
+    try {
+        const { titulo, autor, anoPublicacao, disponivel } = req.body;
+
+        const livro = await Livro.create({
+            titulo,
+            autor,
+            anoPublicacao,
+            disponivel
+        });
+
+        return res.status(201).json({
+            mensagem: 'Livro cadastrado com sucesso!',
+            livro
+        });
+
+    } catch (erro) {
+        console.error('Erro ao cadastrar livro:', erro);
+
+        return res.status(400).json({
+            erro: 'Erro ao cadastrar livro.',
+            detalhe: erro.message
+        });
+    }
+});
+
+// ATUALIZAR LIVRO
 router.put('/:id', async (req, res) => {
     try {
         const livro = await Livro.findByPk(req.params.id);
@@ -79,11 +136,42 @@ router.put('/:id', async (req, res) => {
             });
         }
 
-        await livro.update(req.body);
+        const { titulo, autor, anoPublicacao, disponivel } = req.body;
 
-        return res.json(livro);
+        // Impede alterar manualmente a disponibilidade de livro emprestado.
+        if (
+            disponivel !== undefined &&
+            disponivel !== livro.disponivel
+        ) {
+            const emprestimoAtivo = await Emprestimo.findOne({
+                where: {
+                    livroId: livro.id,
+                    dataDevolucao: null
+                }
+            });
+
+            if (emprestimoAtivo) {
+                return res.status(400).json({
+                    erro: 'A disponibilidade deste livro é controlada pelo módulo de empréstimos.'
+                });
+            }
+        }
+
+        await livro.update({
+            titulo,
+            autor,
+            anoPublicacao,
+            disponivel
+        });
+
+        return res.json({
+            mensagem: 'Livro atualizado com sucesso!',
+            livro
+        });
 
     } catch (erro) {
+        console.error('Erro ao atualizar livro:', erro);
+
         return res.status(400).json({
             erro: 'Erro ao atualizar livro.',
             detalhe: erro.message
@@ -91,7 +179,7 @@ router.put('/:id', async (req, res) => {
     }
 });
 
-// DELETE - Excluir livro
+// EXCLUIR LIVRO
 router.delete('/:id', async (req, res) => {
     try {
         const livro = await Livro.findByPk(req.params.id);
@@ -102,13 +190,27 @@ router.delete('/:id', async (req, res) => {
             });
         }
 
+        const possuiEmprestimos = await Emprestimo.findOne({
+            where: {
+                livroId: livro.id
+            }
+        });
+
+        if (possuiEmprestimos) {
+            return res.status(400).json({
+                erro: 'Não é possível excluir este livro porque existem empréstimos relacionados a ele.'
+            });
+        }
+
         await livro.destroy();
 
         return res.json({
-            mensagem: 'Livro excluído com sucesso.'
+            mensagem: 'Livro excluído com sucesso!'
         });
 
     } catch (erro) {
+        console.error('Erro ao excluir livro:', erro);
+
         return res.status(500).json({
             erro: 'Erro ao excluir livro.',
             detalhe: erro.message

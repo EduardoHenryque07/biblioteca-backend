@@ -1,0 +1,263 @@
+ 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliação - Biblioteca</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            padding: 30px 15px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 550px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+        }
+
+        h1 { color: #1e3a8a; }
+
+        label {
+            display: block;
+            margin-top: 18px;
+            font-weight: bold;
+        }
+
+        select, textarea {
+            width: 100%;
+            padding: 12px;
+            margin-top: 7px;
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+
+        textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+
+        button, a {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 18px;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            text-decoration: none;
+            cursor: pointer;
+        }
+
+        #mensagem {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 id="titulo">⭐ Cadastrar Avaliação</h1>
+
+        <form id="formAvaliacao">
+            <label for="usuarioId">Usuário:</label>
+            <select id="usuarioId" required>
+                <option value="">Carregando usuários...</option>
+            </select>
+
+            <label for="livroId">Livro:</label>
+            <select id="livroId" required>
+                <option value="">Carregando livros...</option>
+            </select>
+
+            <label for="nota">Nota:</label>
+            <select id="nota" required>
+                <option value="">Selecione uma nota</option>
+                <option value="1">1 - Muito ruim</option>
+                <option value="2">2 - Ruim</option>
+                <option value="3">3 - Regular</option>
+                <option value="4">4 - Bom</option>
+                <option value="5">5 - Excelente</option>
+            </select>
+
+            <label for="comentario">Comentário:</label>
+            <textarea
+                id="comentario"
+                minlength="3"
+                maxlength="1000"
+                placeholder="Escreva sua opinião sobre o livro..."
+                required
+            ></textarea>
+
+            <button type="submit" id="botaoSalvar">Cadastrar avaliação</button>
+        </form>
+
+        <div id="mensagem"></div>
+
+        <a href="/avaliacoes.html">Voltar para avaliações</a>
+        <a href="/">Página inicial</a>
+    </div>
+
+    <script>
+        const formulario = document.getElementById('formAvaliacao');
+        const mensagem = document.getElementById('mensagem');
+
+        const parametros = new URLSearchParams(window.location.search);
+        const idAvaliacao = parametros.get('id');
+
+        // Carregar usuários e livros
+        async function carregarOpcoes() {
+            const usuarioSelect = document.getElementById('usuarioId');
+            const livroSelect = document.getElementById('livroId');
+
+            try {
+                const [respostaUsuarios, respostaLivros] = await Promise.all([
+                    fetch('/usuarios'),
+                    fetch('/livros')
+                ]);
+
+                if (!respostaUsuarios.ok || !respostaLivros.ok) {
+                    throw new Error('Não foi possível carregar usuários e livros.');
+                }
+
+                const usuarios = await respostaUsuarios.json();
+                const livros = await respostaLivros.json();
+
+                usuarioSelect.innerHTML =
+                    '<option value="">Selecione um usuário</option>';
+
+                livroSelect.innerHTML =
+                    '<option value="">Selecione um livro</option>';
+
+                usuarios.forEach(usuario => {
+                    const opcao = document.createElement('option');
+                    opcao.value = usuario.id;
+                    opcao.textContent = usuario.nome;
+                    usuarioSelect.appendChild(opcao);
+                });
+
+                livros.forEach(livro => {
+                    const opcao = document.createElement('option');
+                    opcao.value = livro.id;
+                    opcao.textContent = livro.titulo + ' - ' + livro.autor;
+                    livroSelect.appendChild(opcao);
+                });
+
+                if (usuarios.length === 0 || livros.length === 0) {
+                    throw new Error(
+                        'Cadastre pelo menos um usuário e um livro antes de avaliar.'
+                    );
+                }
+
+                // Se existir ID, carregar avaliação para edição
+                if (idAvaliacao) {
+                    await carregarAvaliacao();
+                }
+
+            } catch (erro) {
+                mensagem.style.color = 'red';
+                mensagem.textContent = erro.message;
+            }
+        }
+
+        // Buscar avaliação pelo ID
+        async function carregarAvaliacao() {
+            try {
+                const resposta = await fetch('/avaliacoes/' + idAvaliacao);
+                const avaliacao = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(
+                        avaliacao.erro || 'Não foi possível carregar a avaliação.'
+                    );
+                }
+
+                document.getElementById('titulo').textContent =
+                    '✏️ Editar Avaliação';
+
+                document.getElementById('botaoSalvar').textContent =
+                    'Salvar alterações';
+
+                document.getElementById('usuarioId').value =
+                    avaliacao.usuarioId;
+
+                document.getElementById('livroId').value =
+                    avaliacao.livroId;
+
+                document.getElementById('nota').value =
+                    avaliacao.nota;
+
+                document.getElementById('comentario').value =
+                    avaliacao.comentario;
+
+            } catch (erro) {
+                mensagem.style.color = 'red';
+                mensagem.textContent = erro.message;
+            }
+        }
+
+        // Cadastrar ou atualizar avaliação
+        formulario.addEventListener('submit', async (evento) => {
+            evento.preventDefault();
+
+            const dados = {
+                usuarioId: Number(document.getElementById('usuarioId').value),
+                livroId: Number(document.getElementById('livroId').value),
+                nota: Number(document.getElementById('nota').value),
+                comentario: document.getElementById('comentario').value.trim()
+            };
+
+            try {
+                const resposta = await fetch(
+                    idAvaliacao
+                        ? '/avaliacoes/' + idAvaliacao
+                        : '/avaliacoes',
+                    {
+                        method: idAvaliacao ? 'PUT' : 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(dados)
+                    }
+                );
+
+                const resultado = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(
+                        resultado.detalhe ||
+                        resultado.erro ||
+                        'Não foi possível salvar a avaliação.'
+                    );
+                }
+
+                mensagem.style.color = 'green';
+                mensagem.textContent = idAvaliacao
+                    ? 'Avaliação atualizada com sucesso!'
+                    : 'Avaliação cadastrada com sucesso!';
+
+                if (!idAvaliacao) {
+                    formulario.reset();
+                } else {
+                    document.getElementById('botaoSalvar').disabled = true;
+                }
+
+            } catch (erro) {
+                mensagem.style.color = 'red';
+                mensagem.textContent = erro.message;
+            }
+        });
+
+        carregarOpcoes();
+    </script>
+</body>
+</html>

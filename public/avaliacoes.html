@@ -1,0 +1,188 @@
+ 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avaliações - Biblioteca</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            padding: 30px 15px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: auto;
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+        }
+
+        h1 { color: #1e3a8a; }
+
+        a, button {
+            display: inline-block;
+            padding: 10px 14px;
+            margin: 5px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+        }
+
+        button.excluir {
+            background: #dc2626;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 12px;
+            text-align: left;
+        }
+
+        th { background: #dbeafe; }
+
+        #mensagem { color: #b91c1c; }
+
+        @media (max-width: 700px) {
+            .container { overflow-x: auto; }
+            table { min-width: 750px; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>⭐ Avaliações cadastradas</h1>
+
+        <a href="/">Voltar ao início</a>
+        <a href="/avaliacao-cadastro.html">+ Nova avaliação</a>
+
+        <p id="mensagem"></p>
+
+        <table>
+            <thead>
+                <tr>
+                    <th>Livro (ID)</th>
+                    <th>Usuário (ID)</th>
+                    <th>Nota</th>
+                    <th>Comentário</th>
+                    <th>Data</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+
+            <tbody id="listaAvaliacoes"></tbody>
+        </table>
+    </div>
+
+    <script>
+        async function carregarAvaliacoes() {
+            const lista = document.getElementById('listaAvaliacoes');
+            const mensagem = document.getElementById('mensagem');
+
+            try {
+                const resposta = await fetch('/avaliacoes');
+
+                if (!resposta.ok) {
+                    throw new Error('Não foi possível carregar as avaliações.');
+                }
+
+                const avaliacoes = await resposta.json();
+                lista.innerHTML = '';
+
+                if (avaliacoes.length === 0) {
+                    mensagem.textContent = 'Nenhuma avaliação cadastrada.';
+                    return;
+                }
+
+                mensagem.textContent = '';
+
+                avaliacoes.forEach(avaliacao => {
+                    const linha = document.createElement('tr');
+
+                    const valores = [
+                        avaliacao.livroId,
+                        avaliacao.usuarioId,
+                        avaliacao.nota + '/5',
+                        avaliacao.comentario,
+                        avaliacao.dataAvaliacao
+                            ? new Date(avaliacao.dataAvaliacao).toLocaleDateString('pt-BR')
+                            : '-'
+                    ];
+
+                    valores.forEach(valor => {
+                        const coluna = document.createElement('td');
+                        coluna.textContent = valor;
+                        linha.appendChild(coluna);
+                    });
+
+                    // Coluna de ações
+                    const colunaAcoes = document.createElement('td');
+
+                    const botaoEditar = document.createElement('button');
+                    botaoEditar.textContent = 'Editar';
+                    botaoEditar.onclick = () => {
+                        window.location.href =
+                            '/avaliacao-cadastro.html?id=' + avaliacao._id;
+                    };
+
+                    const botaoExcluir = document.createElement('button');
+                    botaoExcluir.textContent = 'Excluir';
+                    botaoExcluir.className = 'excluir';
+                    botaoExcluir.onclick = () => excluirAvaliacao(avaliacao._id);
+
+                    colunaAcoes.appendChild(botaoEditar);
+                    colunaAcoes.appendChild(botaoExcluir);
+                    linha.appendChild(colunaAcoes);
+
+                    lista.appendChild(linha);
+                });
+
+            } catch (erro) {
+                mensagem.textContent = erro.message;
+            }
+        }
+
+        async function excluirAvaliacao(id) {
+            const confirmar = confirm('Deseja realmente excluir esta avaliação?');
+
+            if (!confirmar) return;
+
+            const mensagem = document.getElementById('mensagem');
+
+            try {
+                const resposta = await fetch('/avaliacoes/' + id, {
+                    method: 'DELETE'
+                });
+
+                const resultado = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(resultado.erro || 'Erro ao excluir avaliação.');
+                }
+
+                mensagem.textContent = resultado.mensagem;
+                carregarAvaliacoes();
+
+            } catch (erro) {
+                mensagem.textContent = erro.message;
+            }
+        }
+
+        carregarAvaliacoes();
+    </script>
+</body>
+</html>

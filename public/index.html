@@ -1,0 +1,65 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Biblioteca</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f1f5f9;
+            margin: 0;
+            padding: 40px 20px;
+            color: #1e293b;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: auto;
+            background: white;
+            padding: 35px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        h1 { color: #1e3a8a; }
+
+        .modulos {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 30px;
+        }
+
+        .modulos a {
+            padding: 25px;
+            background: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .modulos a:hover { background: #1e40af; }
+
+        @media (max-width: 500px) {
+            .modulos { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📚 Sistema de Biblioteca</h1>
+        <p>Gerenciamento de usuários, livros, empréstimos e avaliações.</p>
+        <h2>Selecione um módulo</h2>
+
+        <div class="modulos">
+            <a href="/usuarios.html">👤 Usuários</a>
+            <a href="/livros.html">📖 Livros</a>
+            <a href="/emprestimos.html">📋 Empréstimos</a>
+            <a href="/avaliacoes.html">⭐ Avaliações</a>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,236 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Livros - Biblioteca</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 30px;
+            background: #f4f6f9;
+        }
+
+        h1 { color: #26364a; }
+
+        .filtros {
+            margin: 20px 0;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+        }
+
+        input, select, button {
+            padding: 9px;
+            margin: 5px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            padding: 12px;
+            border: 1px solid #ddd;
+            text-align: left;
+        }
+
+        th {
+            background: #26364a;
+            color: white;
+        }
+
+        .editar {
+            background: #e5a000;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .excluir {
+            background: #c0392b;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .novo {
+            display: inline-block;
+            background: #247a48;
+            color: white;
+            padding: 10px;
+            text-decoration: none;
+        }
+
+        #mensagem { margin: 15px 0; }
+    </style>
+</head>
+
+<body>
+
+    <h1>Livros cadastrados</h1>
+
+    <a class="novo" href="/livro-cadastro.html">+ Novo livro</a>
+    <a href="/">Voltar ao início</a>
+
+    <div class="filtros">
+        <h3>Filtros e ordenação</h3>
+
+        <input type="text" id="filtroTitulo" placeholder="Buscar por título">
+
+        <input type="text" id="filtroAutor" placeholder="Buscar por autor">
+
+        <select id="filtroDisponivel">
+            <option value="">Todos os livros</option>
+            <option value="true">Disponíveis</option>
+            <option value="false">Emprestados</option>
+        </select>
+
+        <select id="ordenacao">
+            <option value="">Ordem padrão</option>
+            <option value="titulo">Título (A-Z)</option>
+            <option value="titulo_desc">Título (Z-A)</option>
+            <option value="ano">Ano (crescente)</option>
+            <option value="ano_desc">Ano (decrescente)</option>
+        </select>
+
+        <button onclick="carregarLivros()">Pesquisar</button>
+        <button onclick="limparFiltros()">Limpar</button>
+    </div>
+
+    <p id="mensagem"></p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Título</th>
+                <th>Autor</th>
+                <th>Ano</th>
+                <th>Disponibilidade</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+
+        <tbody id="listaLivros"></tbody>
+    </table>
+
+    <script>
+        async function carregarLivros() {
+            const corpo = document.getElementById('listaLivros');
+            const mensagem = document.getElementById('mensagem');
+
+            const parametros = new URLSearchParams();
+
+            const titulo = document.getElementById('filtroTitulo').value.trim();
+            const autor = document.getElementById('filtroAutor').value.trim();
+            const disponivel = document.getElementById('filtroDisponivel').value;
+            const ordenacao = document.getElementById('ordenacao').value;
+
+            if (titulo) parametros.append('titulo', titulo);
+            if (autor) parametros.append('autor', autor);
+            if (disponivel !== '') parametros.append('disponivel', disponivel);
+            if (ordenacao) parametros.append('ordenar', ordenacao);
+
+            try {
+                const resposta = await fetch('/livros?' + parametros.toString());
+                const livros = await resposta.json();
+
+                corpo.replaceChildren();
+
+                if (!resposta.ok) {
+                    throw new Error(livros.erro || 'Erro ao carregar livros.');
+                }
+
+                if (livros.length === 0) {
+                    mensagem.textContent = 'Nenhum livro encontrado.';
+                    return;
+                }
+
+                mensagem.textContent = '';
+
+                livros.forEach(livro => {
+                    const linha = document.createElement('tr');
+
+                    const dados = [
+                        livro.id,
+                        livro.titulo,
+                        livro.autor,
+                        livro.anoPublicacao,
+                        livro.disponivel ? 'Disponível' : 'Emprestado'
+                    ];
+
+                    dados.forEach(valor => {
+                        const celula = document.createElement('td');
+                        celula.textContent = valor;
+                        linha.appendChild(celula);
+                    });
+
+                    const acoes = document.createElement('td');
+
+                    const botaoEditar = document.createElement('button');
+                    botaoEditar.textContent = 'Editar';
+                    botaoEditar.className = 'editar';
+                    botaoEditar.onclick = () => {
+                        window.location.href =
+                            '/livro-cadastro.html?id=' + livro.id;
+                    };
+
+                    const botaoExcluir = document.createElement('button');
+                    botaoExcluir.textContent = 'Excluir';
+                    botaoExcluir.className = 'excluir';
+                    botaoExcluir.onclick = () => excluirLivro(livro.id);
+
+                    acoes.append(botaoEditar, botaoExcluir);
+                    linha.appendChild(acoes);
+
+                    corpo.appendChild(linha);
+                });
+
+            } catch (erro) {
+                mensagem.textContent = erro.message;
+            }
+        }
+
+        async function excluirLivro(id) {
+            if (!confirm('Deseja realmente excluir este livro?')) {
+                return;
+            }
+
+            try {
+                const resposta = await fetch('/livros/' + id, {
+                    method: 'DELETE'
+                });
+
+                const resultado = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(resultado.erro || 'Não foi possível excluir o livro.');
+                }
+
+                alert('Livro excluído com sucesso!');
+                carregarLivros();
+
+            } catch (erro) {
+                alert(erro.message);
+            }
+        }
+
+        function limparFiltros() {
+            document.getElementById('filtroTitulo').value = '';
+            document.getElementById('filtroAutor').value = '';
+            document.getElementById('filtroDisponivel').value = '';
+            document.getElementById('ordenacao').value = '';
+
+            carregarLivros();
+        }
+
+        carregarLivros();
+    </script>
+
+</body>
+</html>

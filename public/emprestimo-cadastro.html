@@ -1,0 +1,251 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cadastro de Empréstimo - Biblioteca</title>
+
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f9;
+            margin: 30px;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: auto;
+            padding: 25px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        h1 { color: #26364a; }
+
+        label {
+            display: block;
+            margin-top: 15px;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            box-sizing: border-box;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px;
+            background: #247a48;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        #mensagem { margin-top: 15px; }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1 id="tituloPagina">Cadastrar empréstimo</h1>
+
+    <form id="formEmprestimo">
+
+        <label for="usuarioId">Usuário:</label>
+        <select id="usuarioId" required>
+            <option value="">Selecione um usuário</option>
+        </select>
+
+        <label for="livroId">Livro:</label>
+        <select id="livroId" required>
+            <option value="">Selecione um livro</option>
+        </select>
+
+        <label for="dataEmprestimo">Data do empréstimo:</label>
+        <input type="date" id="dataEmprestimo" required>
+
+        <label for="dataDevolucao">Data da devolução:</label>
+        <input type="date" id="dataDevolucao">
+
+        <button type="submit" id="botaoSalvar">Cadastrar empréstimo</button>
+
+    </form>
+
+    <p id="mensagem"></p>
+
+    <a href="/emprestimos.html">Voltar para empréstimos</a>
+    <br><br>
+    <a href="/">Voltar ao início</a>
+
+</div>
+
+<script>
+    const parametros = new URLSearchParams(window.location.search);
+    const id = parametros.get('id');
+
+    const formulario = document.getElementById('formEmprestimo');
+    const usuarioSelect = document.getElementById('usuarioId');
+    const livroSelect = document.getElementById('livroId');
+    const dataEmprestimo = document.getElementById('dataEmprestimo');
+    const dataDevolucao = document.getElementById('dataDevolucao');
+    const mensagem = document.getElementById('mensagem');
+    const botaoSalvar = document.getElementById('botaoSalvar');
+
+    // Data local atual
+    function dataAtualLocal() {
+        const hoje = new Date();
+        const ano = hoje.getFullYear();
+        const mes = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dia = String(hoje.getDate()).padStart(2, '0');
+
+        return `${ano}-${mes}-${dia}`;
+    }
+
+    dataEmprestimo.value = dataAtualLocal();
+
+    // Carregar usuários
+    async function carregarUsuarios() {
+        const resposta = await fetch('/usuarios');
+        const usuarios = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(usuarios.erro || 'Erro ao carregar usuários.');
+        }
+
+        usuarios.forEach(usuario => {
+            const opcao = document.createElement('option');
+            opcao.value = usuario.id;
+            opcao.textContent = usuario.nome;
+            usuarioSelect.appendChild(opcao);
+        });
+    }
+
+    // Carregar livros disponíveis
+    async function carregarLivros() {
+        const resposta = await fetch('/livros?disponivel=true');
+        const livros = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(livros.erro || 'Erro ao carregar livros.');
+        }
+
+        livros.forEach(livro => {
+            const opcao = document.createElement('option');
+            opcao.value = livro.id;
+            opcao.textContent = livro.titulo;
+            livroSelect.appendChild(opcao);
+        });
+    }
+
+    // Carregar empréstimo para edição
+    async function carregarEmprestimo() {
+        if (!id) return;
+
+        document.getElementById('tituloPagina').textContent = 'Editar empréstimo';
+        botaoSalvar.textContent = 'Salvar alterações';
+
+        const resposta = await fetch('/emprestimos/' + encodeURIComponent(id));
+        const emprestimo = await resposta.json();
+
+        if (!resposta.ok) {
+            throw new Error(emprestimo.erro || 'Empréstimo não encontrado.');
+        }
+
+        dataEmprestimo.value = emprestimo.dataEmprestimo;
+        dataDevolucao.value = emprestimo.dataDevolucao || '';
+
+        // Na edição, usuário e livro não podem ser trocados.
+        const usuario = document.createElement('option');
+        usuario.value = emprestimo.usuarioId;
+        usuario.textContent = emprestimo.Usuario
+            ? emprestimo.Usuario.nome
+            : 'Usuário ' + emprestimo.usuarioId;
+
+        usuarioSelect.appendChild(usuario);
+        usuarioSelect.value = emprestimo.usuarioId;
+        usuarioSelect.disabled = true;
+
+        const livro = document.createElement('option');
+        livro.value = emprestimo.livroId;
+        livro.textContent = emprestimo.Livro
+            ? emprestimo.Livro.titulo
+            : 'Livro ' + emprestimo.livroId;
+
+        livroSelect.appendChild(livro);
+        livroSelect.value = emprestimo.livroId;
+        livroSelect.disabled = true;
+
+        dataEmprestimo.readOnly = false;
+    }
+
+    // Inicialização
+    async function iniciarFormulario() {
+        try {
+            await carregarUsuarios();
+            await carregarLivros();
+            await carregarEmprestimo();
+        } catch (erro) {
+            mensagem.textContent = erro.message;
+            botaoSalvar.disabled = true;
+        }
+    }
+
+    // Cadastrar ou editar
+    formulario.addEventListener('submit', async function(evento) {
+        evento.preventDefault();
+
+        const dados = {
+            dataEmprestimo: dataEmprestimo.value,
+            dataDevolucao: dataDevolucao.value || null
+        };
+
+        let metodo;
+        let url;
+
+        if (id) {
+            metodo = 'PUT';
+            url = '/emprestimos/' + encodeURIComponent(id);
+        } else {
+            metodo = 'POST';
+            url = '/emprestimos';
+
+            dados.usuarioId = Number(usuarioSelect.value);
+            dados.livroId = Number(livroSelect.value);
+        }
+
+        try {
+            const resposta = await fetch(url, {
+                method: metodo,
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(dados)
+            });
+
+            const resultado = await resposta.json();
+
+            if (!resposta.ok) {
+                throw new Error(resultado.erro || 'Erro ao salvar empréstimo.');
+            }
+
+            alert(id
+                ? 'Empréstimo atualizado com sucesso!'
+                : 'Empréstimo cadastrado com sucesso!');
+
+            window.location.href = '/emprestimos.html';
+
+        } catch (erro) {
+            mensagem.textContent = erro.message;
+        }
+    });
+
+    iniciarFormulario();
+</script>
+
+</body>
+</html>

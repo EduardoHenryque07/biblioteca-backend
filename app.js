@@ -1,44 +1,58 @@
+const path = require('path');
 const express = require('express');
 require('dotenv').config();
 
 const sequelize = require('./config/database');
 const conectarMongo = require('./config/mongo');
+const registrarErro = require('./utils/logger');
 
 const app = express();
 
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Permite receber dados em JSON
 app.use(express.json());
 
+// Importação das rotas
+const usuarioRoutes = require('./routes/usuarioRoutes');
+const livroRoutes = require('./routes/livroRoutes');
+const emprestimoRoutes = require('./routes/emprestimoRoutes');
 const avaliacaoRoutes = require('./routes/avaliacaoRoutes');
 
+// Registro das rotas
+app.use('/usuarios', usuarioRoutes);
+app.use('/livros', livroRoutes);
+app.use('/emprestimos', emprestimoRoutes);
 app.use('/avaliacoes', avaliacaoRoutes);
 
-const emprestimoRoutes = require('./routes/emprestimoRoutes');
-
-app.use('/emprestimos', emprestimoRoutes);
-
-const livroRoutes = require('./routes/livroRoutes');
-
-app.use('/livros', livroRoutes);
-
-const usuarioRoutes = require('./routes/usuarioRoutes');
-
-app.use('/usuarios', usuarioRoutes);
-
-const { Usuario, Livro, Emprestimo } = require('./models');
-
-app.use(express.json());
-
-app.get('/', (req, res) => {
-    res.json({
-        mensagem: 'API da Biblioteca funcionando!',
-        status: 'OK'
+// Tratamento de rotas não encontradas
+app.use((req, res) => {
+    res.status(404).json({
+        erro: 'Rota não encontrada.'
     });
 });
 
+// Tratamento geral de erros
+app.use((erro, req, res, next) => {
+    registrarErro(
+        erro,
+        `Erro na rota ${req.method} ${req.originalUrl}`
+    );
+
+    console.error('Erro na aplicação:', erro);
+
+    res.status(500).json({
+        erro: 'Erro interno do servidor.'
+    });
+});
+
+// Inicialização do servidor
 async function iniciarServidor() {
     try {
         await sequelize.authenticate();
+
         await sequelize.sync();
+
         console.log('Tabelas do PostgreSQL sincronizadas!');
         console.log('PostgreSQL conectado com sucesso!');
 
@@ -48,11 +62,15 @@ async function iniciarServidor() {
 
         app.listen(PORT, () => {
             console.log(`Servidor rodando em http://localhost:${PORT}`);
-            console.log(`Servidor rodando em http://localhost:${PORT}/usuarios`);
         });
 
     } catch (erro) {
-        console.error('Erro ao iniciar a aplicação:', erro);
+        registrarErro(erro, 'Erro ao iniciar a aplicação');
+
+        console.error(
+            'Erro ao iniciar a aplicação:',
+            erro
+        );
     }
 }
 

@@ -7,6 +7,9 @@ const Livro = sequelize.define('Livro', {
         type: DataTypes.STRING(150),
         allowNull: false,
         validate: {
+            notNull: {
+                msg: 'O título não pode ser nulo.'
+            },
             notEmpty: {
                 msg: 'O título é obrigatório.'
             },
@@ -16,7 +19,10 @@ const Livro = sequelize.define('Livro', {
             }
         },
         set(valor) {
-            this.setDataValue('titulo', valor.trim());
+            this.setDataValue(
+                'titulo',
+                typeof valor === 'string' ? valor.trim() : valor
+            );
         }
     },
 
@@ -24,6 +30,9 @@ const Livro = sequelize.define('Livro', {
         type: DataTypes.STRING(100),
         allowNull: false,
         validate: {
+            notNull: {
+                msg: 'O autor não pode ser nulo.'
+            },
             notEmpty: {
                 msg: 'O autor é obrigatório.'
             },
@@ -33,7 +42,10 @@ const Livro = sequelize.define('Livro', {
             }
         },
         set(valor) {
-            this.setDataValue('autor', valor.trim());
+            this.setDataValue(
+                'autor',
+                typeof valor === 'string' ? valor.trim() : valor
+            );
         }
     },
 
@@ -41,6 +53,9 @@ const Livro = sequelize.define('Livro', {
         type: DataTypes.INTEGER,
         allowNull: false,
         validate: {
+            notNull: {
+                msg: 'O ano de publicação é obrigatório.'
+            },
             isInt: {
                 msg: 'O ano de publicação deve ser um número inteiro.'
             },

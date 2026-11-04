@@ -1,0 +1,122 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Usuários - Biblioteca</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 30px; background: #f4f6f9; }
+        h1 { color: #26364a; }
+        table { width: 100%; border-collapse: collapse; background: white; }
+        th, td { padding: 12px; border: 1px solid #ddd; text-align: left; }
+        th { background: #26364a; color: white; }
+        a, button { padding: 8px 12px; margin: 3px; cursor: pointer; }
+        .editar { background: #e5a000; color: white; border: 0; }
+        .excluir { background: #c0392b; color: white; border: 0; }
+        .novo { display: inline-block; background: #247a48; color: white; text-decoration: none; }
+        #mensagem { margin: 15px 0; }
+    </style>
+</head>
+<body>
+    <h1>Usuários cadastrados</h1>
+
+    <a class="novo" href="/usuario-cadastro.html">+ Novo usuário</a>
+    <a href="/">Voltar ao início</a>
+
+    <p id="mensagem"></p>
+
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Ações</th>
+            </tr>
+        </thead>
+        <tbody id="listaUsuarios"></tbody>
+    </table>
+
+    <script>
+        async function carregarUsuarios() {
+            const corpo = document.getElementById('listaUsuarios');
+            const mensagem = document.getElementById('mensagem');
+
+            try {
+                const resposta = await fetch('/usuarios');
+                const usuarios = await resposta.json();
+
+                corpo.replaceChildren();
+
+                if (!resposta.ok) {
+                    throw new Error(usuarios.erro || 'Erro ao carregar usuários.');
+                }
+
+                if (usuarios.length === 0) {
+                    mensagem.textContent = 'Nenhum usuário cadastrado.';
+                    return;
+                }
+
+                mensagem.textContent = '';
+
+                usuarios.forEach(usuario => {
+                    const linha = document.createElement('tr');
+
+                    [usuario.id, usuario.nome, usuario.email].forEach(valor => {
+                        const celula = document.createElement('td');
+                        celula.textContent = valor;
+                        linha.appendChild(celula);
+                    });
+
+                    const acoes = document.createElement('td');
+
+                    const botaoEditar = document.createElement('button');
+                    botaoEditar.textContent = 'Editar';
+                    botaoEditar.className = 'editar';
+                    botaoEditar.onclick = () => {
+                        window.location.href =
+                            '/usuario-cadastro.html?id=' + usuario.id;
+                    };
+
+                    const botaoExcluir = document.createElement('button');
+                    botaoExcluir.textContent = 'Excluir';
+                    botaoExcluir.className = 'excluir';
+                    botaoExcluir.onclick = () => excluirUsuario(usuario.id);
+
+                    acoes.append(botaoEditar, botaoExcluir);
+                    linha.appendChild(acoes);
+                    corpo.appendChild(linha);
+                });
+
+            } catch (erro) {
+                mensagem.textContent = erro.message;
+            }
+        }
+
+        async function excluirUsuario(id) {
+            if (!confirm('Deseja realmente excluir este usuário?')) return;
+
+            try {
+                const resposta = await fetch('/usuarios/' + id, {
+                    method: 'DELETE'
+                });
+
+                const resultado = await resposta.json();
+
+                if (!resposta.ok) {
+                    throw new Error(resultado.erro || 'Não foi possível excluir.');
+                }
+
+                alert('Usuário excluído com sucesso!');
+                carregarUsuarios();
+
+            } catch (erro) {
+                alert(erro.message);
+            }
+        }
+
+        carregarUsuarios();
+    </script>
+</body>
+</html>

@@ -26,10 +26,15 @@ const Emprestimo = sequelize.define('Emprestimo', {
             },
 
             isAfterOrEqualDataEmprestimo(valor) {
+                if (!valor) {
+                    return;
+                }
+
+                const dataEmprestimo = this.dataEmprestimo;
+
                 if (
-                    valor &&
-                    this.dataEmprestimo &&
-                    valor < this.dataEmprestimo
+                    dataEmprestimo &&
+                    valor < dataEmprestimo
                 ) {
                     throw new Error(
                         'A devolução não pode ser anterior ao empréstimo.'

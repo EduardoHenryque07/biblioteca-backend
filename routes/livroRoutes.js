@@ -5,6 +5,7 @@ const { Op } = require('sequelize');
 
 const Livro = require('../models/Livro');
 const { Emprestimo } = require('../models');
+const registrarErro = require('../utils/logger');
 
 // LISTAR LIVROS COM FILTROS E ORDENAÇÃO
 router.get('/', async (req, res) => {
@@ -66,7 +67,7 @@ router.get('/', async (req, res) => {
         return res.json(livros);
 
     } catch (erro) {
-        console.error('Erro ao listar livros:', erro);
+        registrarErro(erro, 'Erro ao listar livros');
 
         return res.status(500).json({
             erro: 'Erro ao listar livros.',
@@ -89,7 +90,7 @@ router.get('/:id', async (req, res) => {
         return res.json(livro);
 
     } catch (erro) {
-        console.error('Erro ao buscar livro:', erro);
+        registrarErro(erro, 'Erro ao buscar livro');
 
         return res.status(500).json({
             erro: 'Erro ao buscar livro.',
@@ -116,7 +117,7 @@ router.post('/', async (req, res) => {
         });
 
     } catch (erro) {
-        console.error('Erro ao cadastrar livro:', erro);
+        registrarErro(erro, 'Erro ao cadastrar livro');
 
         return res.status(400).json({
             erro: 'Erro ao cadastrar livro.',
@@ -170,7 +171,7 @@ router.put('/:id', async (req, res) => {
         });
 
     } catch (erro) {
-        console.error('Erro ao atualizar livro:', erro);
+        registrarErro(erro, 'Erro ao atualizar livro');
 
         return res.status(400).json({
             erro: 'Erro ao atualizar livro.',
@@ -209,7 +210,7 @@ router.delete('/:id', async (req, res) => {
         });
 
     } catch (erro) {
-        console.error('Erro ao excluir livro:', erro);
+        registrarErro(erro, 'Erro ao excluir livro');
 
         return res.status(500).json({
             erro: 'Erro ao excluir livro.',

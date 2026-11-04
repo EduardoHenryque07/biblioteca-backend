@@ -1,6 +1,7 @@
 
 const express = require('express');
 const router = express.Router();
+const registrarErro = require('../utils/logger');
 
 const { Emprestimo, Usuario, Livro } = require('../models');
 
@@ -53,6 +54,8 @@ router.post('/', async (req, res) => {
         return res.status(201).json(emprestimo);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao cadastrar empréstimo');
+
         return res.status(400).json({
             erro: 'Erro ao cadastrar empréstimo.',
             detalhe: erro.message
@@ -73,6 +76,8 @@ router.get('/', async (req, res) => {
         return res.json(emprestimos);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao listar empréstimos');
+
         return res.status(500).json({
             erro: 'Erro ao listar empréstimos.',
             detalhe: erro.message
@@ -102,6 +107,8 @@ router.get('/:id', async (req, res) => {
         return res.json(emprestimo);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao buscar empréstimo');
+
         return res.status(500).json({
             erro: 'Erro ao buscar empréstimo.',
             detalhe: erro.message
@@ -110,8 +117,9 @@ router.get('/:id', async (req, res) => {
 });
 
 
-// PUT - Atualizar empréstimo
-router.put('/:id', async (req, res) => {
+
+ // PUT - Atualizar empréstimo
+ router.put('/:id', async (req, res) => {
     try {
         const emprestimo = await Emprestimo.findByPk(req.params.id);
 
@@ -123,7 +131,6 @@ router.put('/:id', async (req, res) => {
 
         const { dataEmprestimo, dataDevolucao } = req.body;
 
-        // Não permite alterar os vínculos do empréstimo
         const dadosAtualizacao = {};
 
         if (dataEmprestimo !== undefined) {
@@ -134,15 +141,23 @@ router.put('/:id', async (req, res) => {
             dadosAtualizacao.dataDevolucao = dataDevolucao;
         }
 
+        // Atualiza e valida as datas
         await emprestimo.update(dadosAtualizacao);
 
-        // Se o livro foi devolvido, libera sua disponibilidade
-        if (emprestimo.dataDevolucao) {
-            const livro = await Livro.findByPk(emprestimo.livroId);
-
-            if (livro) {
-                await livro.update({ disponivel: true });
+        // Verifica se ainda existe empréstimo ativo para o livro
+        const outroEmprestimoAtivo = await Emprestimo.findOne({
+            where: {
+                livroId: emprestimo.livroId,
+                dataDevolucao: null
             }
+        });
+
+        const livro = await Livro.findByPk(emprestimo.livroId);
+
+        if (livro) {
+            await livro.update({
+                disponivel: !outroEmprestimoAtivo
+            });
         }
 
         return res.json({
@@ -151,12 +166,15 @@ router.put('/:id', async (req, res) => {
         });
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao atualizar empréstimo');
+
         return res.status(400).json({
             erro: 'Erro ao atualizar empréstimo.',
             detalhe: erro.message
         });
     }
 });
+
 
 
 // DELETE - Excluir empréstimo
@@ -199,6 +217,8 @@ router.delete('/:id', async (req, res) => {
         });
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao excluir empréstimo');
+
         return res.status(500).json({
             erro: 'Erro ao excluir empréstimo.',
             detalhe: erro.message

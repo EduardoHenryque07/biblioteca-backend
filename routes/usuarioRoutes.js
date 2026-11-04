@@ -1,6 +1,7 @@
 
 const express = require('express');
 const router = express.Router();
+const registrarErro = require('../utils/logger');
 
 const { Usuario } = require('../models');
 
@@ -23,6 +24,8 @@ router.post('/', async (req, res) => {
         return res.status(201).json(usuario);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao cadastrar usuário');
+
         return res.status(500).json({
             erro: 'Erro ao cadastrar usuário.',
             detalhe: erro.message
@@ -38,6 +41,8 @@ router.get('/', async (req, res) => {
         return res.status(200).json(usuarios);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao listar usuários');
+
         return res.status(500).json({
             erro: 'Erro ao listar usuários.',
             detalhe: erro.message
@@ -59,6 +64,8 @@ router.get('/:id', async (req, res) => {
         return res.status(200).json(usuario);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao buscar usuário');
+
         return res.status(500).json({
             erro: 'Erro ao buscar usuário.',
             detalhe: erro.message
@@ -82,6 +89,8 @@ router.put('/:id', async (req, res) => {
         return res.status(200).json(usuario);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao atualizar usuário');
+
         return res.status(500).json({
             erro: 'Erro ao atualizar usuário.',
             detalhe: erro.message
@@ -107,6 +116,8 @@ router.delete('/:id', async (req, res) => {
         });
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao excluir usuário');
+
         return res.status(500).json({
             erro: 'Erro ao excluir usuário.',
             detalhe: erro.message

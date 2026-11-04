@@ -1,7 +1,9 @@
+
 const path = require('path');
 const express = require('express');
 require('dotenv').config();
 
+const criarBanco = require('./config/criarBanco');
 const sequelize = require('./config/database');
 const conectarMongo = require('./config/mongo');
 const registrarErro = require('./utils/logger');
@@ -49,13 +51,19 @@ app.use((erro, req, res, next) => {
 // Inicialização do servidor
 async function iniciarServidor() {
     try {
+        // Verifica se o banco existe e cria caso necessário
+        await criarBanco();
+
+        // Conecta ao PostgreSQL
         await sequelize.authenticate();
 
+        // Cria as tabelas conforme os modelos
         await sequelize.sync();
 
         console.log('Tabelas do PostgreSQL sincronizadas!');
         console.log('PostgreSQL conectado com sucesso!');
 
+        // Conecta ao MongoDB
         await conectarMongo();
 
         const PORT = process.env.PORT || 3000;

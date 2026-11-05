@@ -4,13 +4,20 @@ const router = express.Router();
 
 const Avaliacao = require('../models/Avaliacao');
 const { Usuario, Livro } = require('../models');
+const registrarErro = require('../utils/logger');
 
 // POST - Cadastrar avaliação
 router.post('/', async (req, res) => {
     try {
         const { livroId, usuarioId, nota, comentario } = req.body;
 
-        if (!livroId || !usuarioId || !nota || !comentario) {
+        if (
+            livroId === undefined || livroId === null ||
+            usuarioId === undefined || usuarioId === null ||
+            nota === undefined || nota === null ||
+            comentario === undefined || comentario === null ||
+            typeof comentario !== 'string' || comentario.trim() === ''
+        ) {
             return res.status(400).json({
                 erro: 'Todos os campos são obrigatórios.'
             });
@@ -41,6 +48,8 @@ router.post('/', async (req, res) => {
         return res.status(201).json(avaliacao);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao cadastrar avaliação');
+
         return res.status(400).json({
             erro: 'Erro ao cadastrar avaliação.',
             detalhe: erro.message
@@ -56,6 +65,8 @@ router.get('/', async (req, res) => {
         return res.json(avaliacoes);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao listar avaliações');
+
         return res.status(500).json({
             erro: 'Erro ao listar avaliações.',
             detalhe: erro.message
@@ -77,6 +88,8 @@ router.get('/:id', async (req, res) => {
         return res.json(avaliacao);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao buscar avaliação');
+
         return res.status(400).json({
             erro: 'ID de avaliação inválido.',
             detalhe: erro.message
@@ -105,6 +118,8 @@ router.put('/:id', async (req, res) => {
         return res.json(avaliacao);
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao atualizar avaliação');
+
         return res.status(400).json({
             erro: 'Erro ao atualizar avaliação.',
             detalhe: erro.message
@@ -128,6 +143,8 @@ router.delete('/:id', async (req, res) => {
         });
 
     } catch (erro) {
+        registrarErro(erro, 'Erro ao excluir avaliação');
+
         return res.status(400).json({
             erro: 'Erro ao excluir avaliação.',
             detalhe: erro.message

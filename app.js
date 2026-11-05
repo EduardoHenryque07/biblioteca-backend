@@ -79,6 +79,7 @@ async function iniciarServidor() {
             'Erro ao iniciar a aplicação:',
             erro
         );
+        process.exit(1);
     }
 }
 

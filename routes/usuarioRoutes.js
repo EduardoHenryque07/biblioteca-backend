@@ -10,9 +10,14 @@ router.post('/', async (req, res) => {
     try {
         const { nome, email } = req.body;
 
-        if (!nome || !email) {
+        if (
+            typeof nome !== 'string' ||
+            nome.trim() === '' ||
+            typeof email !== 'string' ||
+            email.trim() === ''
+        ) {
             return res.status(400).json({
-                erro: 'Nome e email são obrigatórios.'
+                erro: 'Nome e email são obrigatórios e devem ser válidos.'
             });
         }
 
@@ -84,7 +89,25 @@ router.put('/:id', async (req, res) => {
             });
         }
 
-        await usuario.update(req.body);
+        const { nome, email } = req.body;
+
+        const dadosAtualizacao = {};
+
+        if (nome !== undefined) {
+            dadosAtualizacao.nome = nome;
+        }
+
+        if (email !== undefined) {
+            dadosAtualizacao.email = email;
+        }
+
+        if (Object.keys(dadosAtualizacao).length === 0) {
+            return res.status(400).json({
+                erro: 'Informe pelo menos um campo para atualizar.'
+            });
+        }
+
+        await usuario.update(dadosAtualizacao);
 
         return res.status(200).json(usuario);
 

@@ -4,12 +4,22 @@ const mongoose = require('mongoose');
 const avaliacaoSchema = new mongoose.Schema({
     livroId: {
         type: Number,
-        required: [true, 'O ID do livro é obrigatório.']
+        required: [true, 'O ID do livro é obrigatório.'],
+        min: [1, 'O ID do livro deve ser positivo.'],
+        validate: {
+            validator: Number.isInteger,
+            message: 'O ID do livro deve ser um número inteiro.'
+        }
     },
 
     usuarioId: {
         type: Number,
-        required: [true, 'O ID do usuário é obrigatório.']
+        required: [true, 'O ID do usuário é obrigatório.'],
+        min: [1, 'O ID do usuário deve ser positivo.'],
+        validate: {
+            validator: Number.isInteger,
+            message: 'O ID do usuário deve ser um número inteiro.'
+        }
     },
 
     nota: {

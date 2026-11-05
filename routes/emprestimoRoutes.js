@@ -15,12 +15,16 @@ router.post('/', async (req, res) => {
             dataDevolucao
         } = req.body;
 
-        if (!usuarioId || !livroId) {
+        if (
+            !Number.isInteger(Number(usuarioId)) ||
+            Number(usuarioId) <= 0 ||
+            !Number.isInteger(Number(livroId)) ||
+            Number(livroId) <= 0
+        ) {
             return res.status(400).json({
-                erro: 'O usuário e o livro são obrigatórios.'
+                erro: 'Informe IDs de usuário e livro válidos.'
             });
         }
-
         const usuario = await Usuario.findByPk(usuarioId);
         const livro = await Livro.findByPk(livroId);
 

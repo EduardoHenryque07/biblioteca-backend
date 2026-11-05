@@ -21,6 +21,9 @@ async function criarBanco() {
 
         if (resultado.rowCount === 0) {
             const nomeBanco = process.env.DB_NAME;
+            if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(nomeBanco)) {
+                throw new Error('Nome do banco de dados inválido.');
+            }
 
             // O nome do banco vem da configuração local.
             await client.query(`CREATE DATABASE "${nomeBanco}"`);

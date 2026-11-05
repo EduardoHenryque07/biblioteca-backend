@@ -139,6 +139,36 @@ router.put('/:id', async (req, res) => {
 
         const { titulo, autor, anoPublicacao, disponivel } = req.body;
 
+        const dadosAtualizacao = {};
+
+        if (titulo !== undefined) {
+            dadosAtualizacao.titulo = titulo;
+        }
+
+        if (autor !== undefined) {
+            dadosAtualizacao.autor = autor;
+        }
+
+        if (anoPublicacao !== undefined) {
+            dadosAtualizacao.anoPublicacao = anoPublicacao;
+        }
+
+        if (disponivel !== undefined) {
+            if (typeof disponivel !== 'boolean') {
+                return res.status(400).json({
+                    erro: 'A disponibilidade deve ser true ou false.'
+                });
+            }
+
+            dadosAtualizacao.disponivel = disponivel;
+        }
+
+        if (Object.keys(dadosAtualizacao).length === 0) {
+            return res.status(400).json({
+                erro: 'Informe pelo menos um campo para atualizar.'
+            });
+        }
+
         // Impede alterar manualmente a disponibilidade de livro emprestado.
         if (
             disponivel !== undefined &&
@@ -158,12 +188,7 @@ router.put('/:id', async (req, res) => {
             }
         }
 
-        await livro.update({
-            titulo,
-            autor,
-            anoPublicacao,
-            disponivel
-        });
+        await livro.update(dadosAtualizacao);
 
         return res.json({
             mensagem: 'Livro atualizado com sucesso!',

@@ -1,5 +1,9 @@
 # biblioteca-backend
- projetobeckend1
+ Projeto 1 — Programação Web Back-End
+
+Aluno: Eduardo Henryque Camargo Silva
+
+Sistema de gerenciamento de biblioteca desenvolvido como projeto acadêmico da disciplina de Programação Web Back-End.
 # Biblioteca Back-End
 
 Sistema de gerenciamento de biblioteca desenvolvido como projeto acadêmico da disciplina de Programação Web Back-End.
